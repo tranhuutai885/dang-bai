@@ -11,6 +11,14 @@
   .header { background: #1877F2; padding: 20px 18px 18px; }
   .header-title { font-size: 20px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px; }
   .header-sub { font-size: 13px; color: rgba(255,255,255,0.8); margin-top: 4px; }
+  .sync-status { font-size: 11px; margin-top: 6px; display: flex; align-items: center; gap: 5px; }
+  .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: #fff; opacity: 0.5; }
+  .sync-dot.synced { background: #4ade80; opacity: 1; }
+  .sync-dot.syncing { background: #fbbf24; opacity: 1; animation: pulse 1s infinite; }
+  .sync-dot.error { background: #f87171; opacity: 1; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .sync-text { color: rgba(255,255,255,0.75); font-size: 11px; }
+
   .card { background: #fff; margin: 12px 12px 0; border-radius: 16px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
   .card-header { padding: 14px 16px 10px; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; justify-content: space-between; }
   .card-header-left { display: flex; align-items: center; gap: 8px; }
@@ -44,6 +52,9 @@
   .open-btn.done-btn { background: #22963F; }
   .reset-btn { background: transparent; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 12px; font-weight: 500; color: #999; padding: 6px 11px; cursor: pointer; display: flex; align-items: center; gap: 4px; }
   .reset-btn:active { background: #fef2f2; color: #e53e3e; border-color: #feb2b2; }
+  .loading-overlay { display: flex; align-items: center; justify-content: center; padding: 32px; gap: 10px; color: #aaa; font-size: 14px; }
+  .spinner { width: 18px; height: 18px; border: 2px solid #eee; border-top-color: #1877F2; border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
   .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(10px); background: #1a1a1a; color: #fff; padding: 11px 24px; border-radius: 99px; font-size: 14px; font-weight: 500; opacity: 0; transition: opacity 0.25s, transform 0.25s; pointer-events: none; white-space: nowrap; z-index: 99; }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 </style>
@@ -57,6 +68,10 @@
       Đăng bài hôm nay
     </div>
     <div class="header-sub" id="date-label"></div>
+    <div class="sync-status">
+      <div class="sync-dot" id="sync-dot"></div>
+      <span class="sync-text" id="sync-text">Đang kết nối...</span>
+    </div>
   </div>
 
   <div class="card">
@@ -102,26 +117,68 @@ Chính chủ - Tài/Zalo: 0365637885</div>
         <em id="count-label">0 / 3</em>
       </div>
       <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
-      <div class="progress-msg" id="progress-msg">Chưa mở group nào</div>
+      <div class="progress-msg" id="progress-msg">Đang tải...</div>
     </div>
-    <div class="group-list" id="group-list"></div>
+    <div class="group-list" id="group-list">
+      <div class="loading-overlay">
+        <div class="spinner"></div>
+        Đang tải dữ liệu...
+      </div>
+    </div>
   </div>
 
 </div>
 <div class="toast" id="toast"></div>
 
 <script>
+var SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxU8FDD0hnPhp2N58WjwW9_K02N2Tgr0P-wlIdUQ6M-JToWrBavVaSehJDMg7YSGTm1/exec";
+
 var groups = [
   { name: "Nhà đất Hóc Môn - Q12 - Củ Chi", url: "https://www.facebook.com/groups/438635523141114/" },
   { name: "Nhà đất HM Q12 Củ Chi (2)", url: "https://www.facebook.com/groups/nhadathocmonquan12cuchi/" },
   { name: "Nhà đất Hóc Môn", url: "https://www.facebook.com/groups/nhadathm/" },
 ];
 
-var KEY = "fb_autotick_v2";
 var done = [];
-try { done = JSON.parse(localStorage.getItem(KEY) || "[]"); } catch(e) { done = []; }
-function save() { try { localStorage.setItem(KEY, JSON.stringify(done)); } catch(e) {} }
 
+// --- SYNC STATUS UI ---
+function setSyncStatus(state, text) {
+  var dot = document.getElementById("sync-dot");
+  var txt = document.getElementById("sync-text");
+  dot.className = "sync-dot " + state;
+  txt.textContent = text;
+}
+
+// --- READ từ Google Sheets ---
+function loadFromSheet(callback) {
+  setSyncStatus("syncing", "Đang đồng bộ...");
+  var url = SCRIPT_URL + "?action=read&t=" + Date.now();
+  fetch(url)
+    .then(function(r) { return r.text(); })
+    .then(function(text) {
+      try { done = JSON.parse(text) || []; } catch(e) { done = []; }
+      setSyncStatus("synced", "Đã đồng bộ");
+      if (callback) callback();
+    })
+    .catch(function() {
+      setSyncStatus("error", "Mất kết nối — dùng bản local");
+      // fallback localStorage
+      try { done = JSON.parse(localStorage.getItem("fb_done") || "[]"); } catch(e) { done = []; }
+      if (callback) callback();
+    });
+}
+
+// --- WRITE lên Google Sheets ---
+function saveToSheet() {
+  setSyncStatus("syncing", "Đang lưu...");
+  localStorage.setItem("fb_done", JSON.stringify(done)); // local backup
+  var url = SCRIPT_URL + "?action=write&data=" + encodeURIComponent(JSON.stringify(done));
+  fetch(url)
+    .then(function() { setSyncStatus("synced", "Đã lưu ✓"); })
+    .catch(function() { setSyncStatus("error", "Lưu thất bại — đã backup local"); });
+}
+
+// --- UI ---
 function updateProgress() {
   var n = done.length, total = groups.length;
   document.getElementById("progress-fill").style.width = Math.round(n / total * 100) + "%";
@@ -160,8 +217,8 @@ function openAndTick(i, url) {
   window.open(url, "_blank");
   if (done.indexOf(i) === -1) {
     done.push(i);
-    save();
     render();
+    saveToSheet();
     showToast("✅ Đã tick group " + (i + 1) + "!");
   } else {
     showToast("Đã mở lại group " + (i + 1));
@@ -173,8 +230,8 @@ function confirmReset() {
   if (pw === null) return;
   if (pw !== "123456") { showToast("❌ Sai mật khẩu!"); return; }
   done = [];
-  save();
   render();
+  saveToSheet();
   showToast("🔄 Đã làm mới xong!");
 }
 
@@ -207,11 +264,17 @@ function showToast(msg) {
   setTimeout(function() { t.classList.remove("show"); }, 2200);
 }
 
+// --- INIT ---
 var now = new Date();
 document.getElementById("date-label").textContent =
   now.toLocaleDateString("vi-VN", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
-render();
+loadFromSheet(function() { render(); });
+
+// Auto refresh mỗi 30 giây (để bạn thấy cập nhật khi người kia tick)
+setInterval(function() {
+  loadFromSheet(function() { render(); });
+}, 30000);
 </script>
 </body>
 </html>
