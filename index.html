@@ -93,7 +93,7 @@ Chính chủ - Tài/Zalo: 0365637885</div>
       </div>
       <button class="reset-btn" onclick="confirmReset()">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>
-        Reset
+        Làm mới
       </button>
     </div>
     <div class="progress-wrap">
@@ -169,12 +169,13 @@ function openAndTick(i, url) {
 }
 
 function confirmReset() {
-  if (confirm("Reset hết tick về chưa đăng?")) {
-    done = [];
-    save();
-    render();
-    showToast("🔄 Đã reset xong!");
-  }
+  var pw = prompt("Nhập mật khẩu để làm mới:");
+  if (pw === null) return;
+  if (pw !== "123456") { showToast("❌ Sai mật khẩu!"); return; }
+  done = [];
+  save();
+  render();
+  showToast("🔄 Đã làm mới xong!");
 }
 
 function copyContent() {
