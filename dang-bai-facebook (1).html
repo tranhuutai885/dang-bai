@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Đăng bài hôm nay</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f2f4f7; min-height: 100vh; }
+  .app { max-width: 430px; margin: 0 auto; padding: 0 0 60px; }
+  .header { background: #1877F2; padding: 20px 18px 18px; }
+  .header-title { font-size: 20px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px; }
+  .header-sub { font-size: 13px; color: rgba(255,255,255,0.8); margin-top: 4px; }
+  .card { background: #fff; margin: 12px 12px 0; border-radius: 16px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+  .card-header { padding: 14px 16px 10px; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; justify-content: space-between; }
+  .card-header-left { display: flex; align-items: center; gap: 8px; }
+  .card-header-icon { width: 32px; height: 32px; background: #E7F0FD; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 17px; }
+  .card-header-text { font-size: 14px; font-weight: 600; color: #1a1a1a; }
+  .card-body { padding: 14px 16px; }
+  .content-box { font-size: 14px; line-height: 1.75; color: #1a1a1a; background: #f8f9fa; border-radius: 10px; padding: 14px; white-space: pre-wrap; word-break: break-word; }
+  .copy-btn { width: 100%; margin-top: 12px; padding: 14px; background: #1877F2; color: #fff; border: none; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.2s; }
+  .copy-btn:active { transform: scale(0.98); }
+  .copy-btn.copied { background: #22963F; }
+  .copy-hint { font-size: 12px; color: #888; text-align: center; margin-top: 8px; line-height: 1.6; }
+  .progress-wrap { padding: 14px 16px 10px; }
+  .progress-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .progress-label span { font-size: 13px; font-weight: 600; color: #1a1a1a; }
+  .progress-label em { font-size: 13px; color: #888; font-style: normal; }
+  .progress-track { background: #eee; border-radius: 99px; height: 8px; overflow: hidden; }
+  .progress-fill { height: 8px; border-radius: 99px; background: #22963F; transition: width 0.5s cubic-bezier(.4,0,.2,1); }
+  .progress-msg { font-size: 12px; color: #888; margin-top: 6px; }
+  .progress-msg.all-done { color: #22963F; font-weight: 600; }
+  .group-list { display: flex; flex-direction: column; }
+  .group-item { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-top: 1px solid #f0f0f0; transition: background 0.3s; }
+  .group-item.done-item { background: #f0fdf4; }
+  .group-num { width: 28px; height: 28px; border-radius: 50%; background: #E7F0FD; color: #1877F2; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.3s, color 0.3s; }
+  .group-num.done-num { background: #dcfce7; color: #22963F; }
+  .group-info { flex: 1; min-width: 0; }
+  .group-name { font-size: 14px; font-weight: 600; color: #1a1a1a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .group-status { font-size: 12px; color: #aaa; margin-top: 2px; }
+  .group-status.done-st { color: #22963F; }
+  .open-btn { background: #1877F2; color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; padding: 9px 14px; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 5px; transition: background 0.15s; flex-shrink: 0; }
+  .open-btn:active { background: #1560cc; }
+  .open-btn.done-btn { background: #22963F; }
+  .reset-btn { background: transparent; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 12px; font-weight: 500; color: #999; padding: 6px 11px; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+  .reset-btn:active { background: #fef2f2; color: #e53e3e; border-color: #feb2b2; }
+  .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(10px); background: #1a1a1a; color: #fff; padding: 11px 24px; border-radius: 99px; font-size: 14px; font-weight: 500; opacity: 0; transition: opacity 0.25s, transform 0.25s; pointer-events: none; white-space: nowrap; z-index: 99; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="header">
+    <div class="header-title">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+      Đăng bài hôm nay
+    </div>
+    <div class="header-sub" id="date-label"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-header-left">
+        <div class="card-header-icon">📋</div>
+        <div class="card-header-text">Nội dung bài đăng</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="content-box" id="post-content">Chính chủ bán / Tìm môi giới
+Nhà này mua để ở được gần 8 năm rồi, cực thích ở đây nhưng do đi du học nên em/mình bán lại cho khách để ở/ cho thuê.
+
+📍 Nhà 1 xẹt Nguyễn Văn Bứa, gần THCS Nguyễn Hồng Đào, hẻm xe ba gác, xe tải đầu đường cách 50m, bách hoá xanh ngay đầu đường siêu tiện.
+💰 Giá: 1,55 tỷ (thương lượng) | Cho thuê: 3,5tr/tháng
+✅ Pháp lý: mua bán vi bằng + ủy quyền toàn phần. Nhà sổ đỏ giữ sổ gốc, luôn căn kế bên.
+✅ DT: 3 × 12m, 2PN, gác lửng đẹp, duy nhất trong khu xóm có hàng rào riêng.
+Nhà hẻm cụt, không mồ mả, yên tĩnh rất an ninh.
+Mình/em có sao nói vậy nha ạ.
+Chính chủ - Tài/Zalo: 0365637885</div>
+      <button class="copy-btn" id="copy-btn" onclick="copyContent()">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span id="copy-label">Sao chép nội dung</span>
+      </button>
+      <div class="copy-hint">👆 Sao chép → Bấm <b>Mở</b> từng group → Paste → Đăng kèm ảnh<br>Bấm Mở là tự tick ✅ luôn!</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:12px;">
+    <div class="card-header">
+      <div class="card-header-left">
+        <div class="card-header-icon">✅</div>
+        <div class="card-header-text">Danh sách group</div>
+      </div>
+      <button class="reset-btn" onclick="confirmReset()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>
+        Reset
+      </button>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-label">
+        <span>Tiến độ hôm nay</span>
+        <em id="count-label">0 / 3</em>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+      <div class="progress-msg" id="progress-msg">Chưa mở group nào</div>
+    </div>
+    <div class="group-list" id="group-list"></div>
+  </div>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+var groups = [
+  { name: "Nhà đất Hóc Môn - Q12 - Củ Chi", url: "https://www.facebook.com/groups/438635523141114/" },
+  { name: "Nhà đất HM Q12 Củ Chi (2)", url: "https://www.facebook.com/groups/nhadathocmonquan12cuchi/" },
+  { name: "Nhà đất Hóc Môn", url: "https://www.facebook.com/groups/nhadathm/" },
+];
+
+var KEY = "fb_autotick_v2";
+var done = [];
+try { done = JSON.parse(localStorage.getItem(KEY) || "[]"); } catch(e) { done = []; }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(done)); } catch(e) {} }
+
+function updateProgress() {
+  var n = done.length, total = groups.length;
+  document.getElementById("progress-fill").style.width = Math.round(n / total * 100) + "%";
+  document.getElementById("count-label").textContent = n + " / " + total;
+  var msg = document.getElementById("progress-msg");
+  if (n === 0) { msg.textContent = "Chưa mở group nào"; msg.className = "progress-msg"; }
+  else if (n === total) { msg.textContent = "🎉 Xong hết rồi! Làm tốt lắm!"; msg.className = "progress-msg all-done"; }
+  else { msg.textContent = "Đã mở " + n + "/" + total + " group"; msg.className = "progress-msg"; }
+}
+
+function render() {
+  var list = document.getElementById("group-list");
+  list.innerHTML = "";
+  groups.forEach(function(g, i) {
+    var isDone = done.indexOf(i) !== -1;
+    var div = document.createElement("div");
+    div.className = "group-item" + (isDone ? " done-item" : "");
+    div.innerHTML =
+      '<div class="group-num' + (isDone ? ' done-num' : '') + '">' + (isDone ? '✓' : (i + 1)) + '</div>' +
+      '<div class="group-info">' +
+        '<div class="group-name">' + g.name + '</div>' +
+        '<div class="group-status' + (isDone ? ' done-st' : '') + '">' +
+          (isDone ? '✅ Đã mở — nhớ đăng bài nhé!' : 'Chưa mở') +
+        '</div>' +
+      '</div>' +
+      '<button class="open-btn' + (isDone ? ' done-btn' : '') + '" onclick="openAndTick(' + i + ', \'' + g.url + '\')">' +
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>' +
+        (isDone ? 'Mở lại' : 'Mở') +
+      '</button>';
+    list.appendChild(div);
+  });
+  updateProgress();
+}
+
+function openAndTick(i, url) {
+  window.open(url, "_blank");
+  if (done.indexOf(i) === -1) {
+    done.push(i);
+    save();
+    render();
+    showToast("✅ Đã tick group " + (i + 1) + "!");
+  } else {
+    showToast("Đã mở lại group " + (i + 1));
+  }
+}
+
+function confirmReset() {
+  if (confirm("Reset hết tick về chưa đăng?")) {
+    done = [];
+    save();
+    render();
+    showToast("🔄 Đã reset xong!");
+  }
+}
+
+function copyContent() {
+  var text = document.getElementById("post-content").innerText;
+  var finish = function() {
+    document.getElementById("copy-label").textContent = "Đã sao chép!";
+    document.getElementById("copy-btn").classList.add("copied");
+    showToast("✅ Đã sao chép nội dung!");
+    setTimeout(function() {
+      document.getElementById("copy-label").textContent = "Sao chép nội dung";
+      document.getElementById("copy-btn").classList.remove("copied");
+    }, 2500);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(finish);
+  } else {
+    var ta = document.createElement("textarea");
+    ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    try { document.execCommand("copy"); } catch(e) {}
+    document.body.removeChild(ta);
+    finish();
+  }
+}
+
+function showToast(msg) {
+  var t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("show");
+  setTimeout(function() { t.classList.remove("show"); }, 2200);
+}
+
+var now = new Date();
+document.getElementById("date-label").textContent =
+  now.toLocaleDateString("vi-VN", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+
+render();
+</script>
+</body>
+</html>
